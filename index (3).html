@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Highlight 수료 프로젝트 예선전</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #fdf2f8; margin: 0; padding: 0; }
+    .view { display: none; min-height: 100vh; }
+    #toast {
+      position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+      background: #1f2937; color: white; padding: 12px 24px; border-radius: 24px;
+      font-size: 14px; z-index: 9999; opacity: 0; transition: opacity 0.3s;
+      pointer-events: none; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+    .float-bar {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: white; border-top: 1px solid #fce7f3;
+      padding: 12px 16px; display: flex; gap: 10px; z-index: 100;
+    }
+    textarea { resize: vertical; font-family: inherit; }
+    input:focus, textarea:focus { outline: none; }
+  </style>
+</head>
+<body>
+
+<div id="toast"></div>
+
+<!-- ===== HOME ===== -->
+<div id="view-home" class="view">
+  <div style="min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;background:linear-gradient(135deg,#fdf2f8 0%,#fce7f3 100%);">
+    <div style="text-align:center;margin-bottom:32px;">
+      <div style="width:80px;height:80px;background:linear-gradient(135deg,#f472b6,#ec4899);border-radius:24px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+        <i class="fa-solid fa-heart" style="color:white;font-size:36px;"></i>
+      </div>
+      <p style="color:#f472b6;font-size:12px;font-weight:700;letter-spacing:3px;margin:0 0 8px;">PEER REVIEW</p>
+      <h1 style="color:#1f2937;font-size:28px;font-weight:800;margin:0;line-height:1.3;">Highlight 수료<br>프로젝트 예선전</h1>
+    </div>
+    <div style="background:white;border-radius:20px;padding:28px;width:100%;max-width:400px;box-shadow:0 4px 24px rgba(236,72,153,0.12);">
+      <p style="color:#ec4899;font-size:13px;font-weight:600;margin:0 0 12px;">
+        <i class="fa-solid fa-user" style="margin-right:6px;"></i>본인 이름을 입력해 주세요
+      </p>
+      <input id="home-name-input" type="text" placeholder="이름을 입력하세요"
+        style="width:100%;padding:14px 16px;border:2px solid #fce7f3;border-radius:12px;font-size:16px;transition:border-color 0.2s;"
+        onfocus="this.style.borderColor='#ec4899'" onblur="this.style.borderColor='#fce7f3'" />
+      <button onclick="startEval()"
+        style="width:100%;margin-top:12px;padding:16px;background:#ec4899;color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;">
+        <i class="fa-solid fa-arrow-right" style="margin-right:8px;"></i>동료 평가 시작하기
+      </button>
+    </div>
+    <button onclick="goAdmin()"
+      style="margin-top:40px;background:none;border:none;color:#f9a8d4;font-size:13px;cursor:pointer;">
+      <i class="fa-solid fa-lock" style="margin-right:4px;"></i>관리자 페이지
+    </button>
+  </div>
+</div>
+
+<!-- ===== EVAL ===== -->
+<div id="view-eval" class="view">
+  <div style="position:sticky;top:0;z-index:50;background:linear-gradient(135deg,#ec4899,#f472b6);color:white;padding:14px 16px;">
+    <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <button onclick="goHome()" style="background:rgba(255,255,255,0.25);border:none;color:white;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:600;">
+          <i class="fa-solid fa-arrow-left" style="margin-right:4px;"></i>처음으로
+        </button>
+        <div>
+          <div style="font-size:11px;opacity:0.8;">Highlight 수료 프로젝트 예선전</div>
+          <div id="eval-header-name" style="font-size:16px;font-weight:700;"></div>
+        </div>
+      </div>
+      <div style="background:rgba(255,255,255,0.25);border-radius:10px;padding:8px 16px;text-align:center;">
+        <div style="font-size:11px;opacity:0.8;">추천</div>
+        <div id="heart-count-display" style="font-size:20px;font-weight:800;">0 / 2</div>
+      </div>
+    </div>
+  </div>
+  <div id="eval-card-list" style="max-width:700px;margin:0 auto;padding:16px 16px 130px;"></div>
+  <div id="eval-float-bar" class="float-bar">
+    <button onclick="saveTemp()" style="flex:1;padding:15px;background:white;color:#ec4899;border:2px solid #ec4899;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">
+      <i class="fa-solid fa-floppy-disk" style="margin-right:6px;"></i>임시저장
+    </button>
+    <button onclick="submitFinal()" style="flex:2;padding:15px;background:#ec4899;color:white;border:none;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;">
+      <i class="fa-solid fa-paper-plane" style="margin-right:6px;"></i>최종 제출
+    </button>
+  </div>
+  <div id="eval-submitted-bar" style="display:none;" class="float-bar">
+    <div style="width:100%;text-align:center;color:#ec4899;font-weight:700;font-size:15px;">
+      ✅ 제출이 완료된 평가입니다.
+    </div>
+  </div>
+</div>
+
+<!-- ===== ADMIN ===== -->
+<div id="view-admin" class="view">
+  <div style="position:sticky;top:0;z-index:50;background:linear-gradient(135deg,#ec4899,#f472b6);color:white;padding:14px 16px;">
+    <div style="max-width:700px;margin:0 auto;display:flex;align-items:center;gap:12px;">
+      <button onclick="goHome()" style="background:rgba(255,255,255,0.25);border:none;color:white;border-radius:8px;padding:7px 14px;font-size:13px;cursor:pointer;font-weight:600;">
+        <i class="fa-solid fa-arrow-left" style="margin-right:4px;"></i>처음으로
+      </button>
+      <div>
+        <div style="font-size:11px;opacity:0.8;">관리자</div>
+        <div style="font-size:16px;font-weight:700;"><i class="fa-solid fa-gear" style="margin-right:6px;"></i>관리자 페이지</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div style="max-width:700px;margin:0 auto;padding:16px 16px 0;">
+    <div style="display:flex;gap:8px;">
+      <button id="tab-btn-teams" onclick="switchTab('teams')"
+        style="flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:#ec4899;color:white;border:none;">
+        <i class="fa-solid fa-users" style="margin-right:6px;"></i>팀 정보 관리
+      </button>
+      <button id="tab-btn-stats" onclick="switchTab('stats')"
+        style="flex:1;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;background:white;color:#ec4899;border:2px solid #ec4899;">
+        <i class="fa-solid fa-chart-bar" style="margin-right:6px;"></i>평가 통계
+      </button>
+    </div>
+  </div>
+
+  <!-- Tab: 팀 정보 -->
+  <div id="admin-tab-teams" style="max-width:700px;margin:0 auto;padding:12px 16px 120px;">
+    <div id="admin-team-list"></div>
+    <button onclick="saveTeams()"
+      style="width:100%;padding:16px;background:#ec4899;color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:8px;">
+      <i class="fa-solid fa-floppy-disk" style="margin-right:8px;"></i>팀 정보 저장
+    </button>
+    <button onclick="resetAll()"
+      style="width:100%;padding:16px;background:white;color:#ef4444;border:2px solid #ef4444;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;margin-top:10px;">
+      <i class="fa-solid fa-trash" style="margin-right:8px;"></i>평가 데이터 전체 초기화
+    </button>
+  </div>
+
+  <!-- Tab: 통계 -->
+  <div id="admin-tab-stats" style="display:none;max-width:700px;margin:0 auto;padding:12px 16px 60px;">
+    <div id="stats-content"></div>
+  </div>
+</div>
+
+<script>
+// ======================== CONSTANTS ========================
+var TEAMS_KEY = 'hl_teams';
+var SUBMITTERS_KEY = 'hl_submitters';
+var USER_PREFIX = 'hl_user_';
+
+// ======================== STATE ========================
+var currentUser = '';
+var teams = [];
+var evalData = {};
+var isSubmitted = false;
+
+// ======================== STORAGE ========================
+function loadTeams() {
+  try {
+    var raw = localStorage.getItem(TEAMS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  var arr = [];
+  for (var i = 0; i < 16; i++) arr.push({ name: (i+1)+'번 조', topic: '' });
+  return arr;
+}
+
+function saveTeamsStorage(t) {
+  try { localStorage.setItem(TEAMS_KEY, JSON.stringify(t)); } catch(e) {}
+}
+
+function loadUserData(name) {
+  try {
+    var raw = localStorage.getItem(USER_PREFIX + name);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return { evalData: {}, isSubmitted: false };
+}
+
+function saveUserData() {
+  try {
+    localStorage.setItem(USER_PREFIX + currentUser, JSON.stringify({ evalData: evalData, isSubmitted: isSubmitted }));
+    if (isSubmitted) {
+      var subs = loadSubmitters();
+      if (subs.indexOf(currentUser) === -1) {
+        subs.push(currentUser);
+        localStorage.setItem(SUBMITTERS_KEY, JSON.stringify(subs));
+      }
+    }
+  } catch(e) {}
+}
+
+function loadSubmitters() {
+  try {
+    var raw = localStorage.getItem(SUBMITTERS_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return [];
+}
+
+function getAllSubmissions() {
+  var subs = loadSubmitters();
+  return subs.map(function(name) {
+    var ud = loadUserData(name);
+    return { name: name, evalData: ud.evalData, isSubmitted: ud.isSubmitted };
+  });
+}
+
+// ======================== VIEW ========================
+function showView(id) {
+  ['view-home','view-eval','view-admin'].forEach(function(v) {
+    document.getElementById(v).style.display = 'none';
+  });
+  document.getElementById(id).style.display = 'block';
+  window.scrollTo(0, 0);
+}
+
+// ======================== HOME ========================
+function startEval() {
+  var input = document.getElementById('home-name-input');
+  var name = input.value.trim();
+  if (!name) {
+    input.style.borderColor = '#ef4444';
+    input.focus();
+    showToast('이름을 입력해 주세요.');
+    return;
+  }
+  currentUser = name;
+  var ud = loadUserData(name);
+  evalData = ud.evalData || {};
+  isSubmitted = ud.isSubmitted || false;
+  teams = loadTeams();
+  renderEvalView();
+  showView('view-eval');
+}
+
+function goHome() {
+  showView('view-home');
+}
+
+function goAdmin() {
+  var pw = prompt('관리자 비밀번호를 입력하세요:');
+  if (pw === 'admin123') {
+    teams = loadTeams();
+    renderAdminTeams();
+    switchTab('teams');
+    showView('view-admin');
+  } else if (pw !== null) {
+    showToast('비밀번호가 올바르지 않습니다.');
+  }
+}
+
+// ======================== EVAL ========================
+function getTeamData(teamId) {
+  if (!evalData[teamId]) evalData[teamId] = { memo:'', liked:false, reason:'' };
+  return evalData[teamId];
+}
+
+function updateHeartCount() {
+  var count = 0;
+  Object.values(evalData).forEach(function(d) { if (d.liked) count++; });
+  document.getElementById('heart-count-display').textContent = count + ' / 2';
+}
+
+function renderEvalView() {
+  document.getElementById('eval-header-name').innerHTML =
+    '<i class="fa-solid fa-heart" style="margin-right:4px;"></i>' + currentUser + '님의 동료 평가';
+  updateHeartCount();
+
+  var list = document.getElementById('eval-card-list');
+  list.innerHTML = '';
+
+  for (var i = 0; i < teams.length; i++) {
+    (function(idx) {
+      var team = teams[idx];
+      var teamId = 'team_' + idx;
+      var td = getTeamData(teamId);
+
+      var card = document.createElement('div');
+      card.id = 'card-' + teamId;
+      card.style.cssText = 'background:white;border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 2px 12px rgba(236,72,153,0.08);border:2px solid ' + (td.liked ? '#f9a8d4' : 'transparent') + ';';
+
+      var topicText = team.topic || '시나리오 주제를 입력해 주세요';
+      var heartIcon = td.liked ? 'fa-solid' : 'fa-regular';
+      var heartColor = td.liked ? '#ec4899' : '#d1d5db';
+      var btnBg = td.liked ? '#fdf2f8' : '#f9fafb';
+      var btnBorder = td.liked ? '#f9a8d4' : '#e5e7eb';
+      var reasonDisplay = td.liked ? 'block' : 'none';
+
+      card.innerHTML = '<div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;">' +
+        '<div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0;">' +
+          '<span style="background:#ec4899;color:white;border-radius:50%;width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0;">' + (idx+1) + '</span>' +
+          '<div style="min-width:0;">' +
+            '<div style="font-size:16px;font-weight:700;color:#1f2937;">' + team.name + '</div>' +
+            '<div style="font-size:13px;color:#6b7280;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + topicText + '</div>' +
+          '</div>' +
+        '</div>' +
+        '<button id="heart-btn-' + teamId + '" onclick="toggleHeart(\'' + teamId + '\')" ' + (isSubmitted ? 'disabled' : '') +
+          ' style="background:' + btnBg + ';border:2px solid ' + btnBorder + ';border-radius:12px;padding:10px 14px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;flex-shrink:0;margin-left:10px;">' +
+          '<i class="' + heartIcon + ' fa-heart" style="font-size:22px;color:' + heartColor + ';"></i>' +
+          '<span style="font-size:10px;font-weight:700;color:' + (td.liked ? '#ec4899' : '#9ca3af') + ';">추천</span>' +
+        '</button>' +
+      '</div>' +
+      '<div>' +
+        '<label style="font-size:12px;color:#9ca3af;font-weight:600;display:block;margin-bottom:6px;"><i class="fa-regular fa-note-sticky" style="margin-right:4px;"></i>개인 메모</label>' +
+        '<textarea id="memo-' + teamId + '" placeholder="발표를 들으며 자유롭게 메모하세요..." ' + (isSubmitted ? 'readonly' : '') +
+          ' style="width:100%;padding:12px;border:1.5px solid #f3f4f6;border-radius:10px;font-size:14px;min-height:70px;color:#374151;" ' +
+          'onfocus="this.style.borderColor=\'#f9a8d4\'" onblur="this.style.borderColor=\'#f3f4f6\'" ' +
+          'oninput="onMemoInput(\'' + teamId + '\',this.value)">' + (td.memo || '') + '</textarea>' +
+      '</div>' +
+      '<div id="reason-area-' + teamId + '" style="display:' + reasonDisplay + ';margin-top:10px;">' +
+        '<label style="font-size:12px;color:#ec4899;font-weight:700;display:block;margin-bottom:6px;"><i class="fa-solid fa-heart" style="margin-right:4px;"></i>추천 사유 <span style="color:#ef4444;">*필수</span></label>' +
+        '<textarea id="reason-' + teamId + '" placeholder="이 프로젝트를 추천하는 이유를 입력해 주세요..." ' + (isSubmitted ? 'readonly' : '') +
+          ' style="width:100%;padding:12px;border:1.5px solid #f9a8d4;border-radius:10px;font-size:14px;min-height:70px;color:#374151;" ' +
+          'onfocus="this.style.borderColor=\'#ec4899\'" onblur="this.style.borderColor=\'#f9a8d4\'" ' +
+          'oninput="onReasonInput(\'' + teamId + '\',this.value)">' + (td.reason || '') + '</textarea>' +
+      '</div>';
+
+      list.appendChild(card);
+    })(i);
+  }
+
+  if (isSubmitted) {
+    document.getElementById('eval-float-bar').style.display = 'none';
+    document.getElementById('eval-submitted-bar').style.display = 'flex';
+  } else {
+    document.getElementById('eval-float-bar').style.display = 'flex';
+    document.getElementById('eval-submitted-bar').style.display = 'none';
+  }
+}
+
+function toggleHeart(teamId) {
+  if (isSubmitted) return;
+  var td = getTeamData(teamId);
+  var count = 0;
+  Object.values(evalData).forEach(function(d) { if (d.liked) count++; });
+
+  if (!td.liked && count >= 2) {
+    showToast('최대 2개의 프로젝트만 추천 가능합니다.');
+    return;
+  }
+
+  td.liked = !td.liked;
+  if (!td.liked) td.reason = '';
+
+  var btn = document.getElementById('heart-btn-' + teamId);
+  btn.style.background = td.liked ? '#fdf2f8' : '#f9fafb';
+  btn.style.borderColor = td.liked ? '#f9a8d4' : '#e5e7eb';
+  btn.innerHTML = '<i class="' + (td.liked ? 'fa-solid' : 'fa-regular') + ' fa-heart" style="font-size:22px;color:' + (td.liked ? '#ec4899' : '#d1d5db') + ';"></i>' +
+    '<span style="font-size:10px;font-weight:700;color:' + (td.liked ? '#ec4899' : '#9ca3af') + ';">추천</span>';
+
+  var card = document.getElementById('card-' + teamId);
+  card.style.borderColor = td.liked ? '#f9a8d4' : 'transparent';
+
+  var reasonArea = document.getElementById('reason-area-' + teamId);
+  reasonArea.style.display = td.liked ? 'block' : 'none';
+
+  if (!td.liked) {
+    var reasonTA = document.getElementById('reason-' + teamId);
+    if (reasonTA) reasonTA.value = '';
+  }
+
+  updateHeartCount();
+  autoSave();
+}
+
+function onMemoInput(teamId, value) {
+  getTeamData(teamId).memo = value;
+  autoSave();
+}
+
+function onReasonInput(teamId, value) {
+  getTeamData(teamId).reason = value;
+  autoSave();
+}
+
+function autoSave() { saveUserData(); }
+
+function saveTemp() {
+  saveUserData();
+  showToast('임시저장 되었습니다.');
+}
+
+function submitFinal() {
+  var likedEntries = Object.entries(evalData).filter(function(e) { return e[1].liked; });
+  for (var i = 0; i < likedEntries.length; i++) {
+    var teamId = likedEntries[i][0];
+    var td = likedEntries[i][1];
+    if (!td.reason || !td.reason.trim()) {
+      var idx = parseInt(teamId.split('_')[1]);
+      alert('[' + teams[idx].name + '] 추천 사유를 입력해 주세요.');
+      var el = document.getElementById('reason-' + teamId);
+      if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.focus(); }
+      return;
+    }
+  }
+  if (!confirm('최종 제출 후에는 수정할 수 없습니다. 제출하시겠습니까?')) return;
+  isSubmitted = true;
+  saveUserData();
+  renderEvalView();
+  showToast('제출이 완료되었습니다. 감사합니다!');
+}
+
+// ======================== ADMIN - TEAMS ========================
+function switchTab(tab) {
+  document.getElementById('admin-tab-teams').style.display = tab === 'teams' ? 'block' : 'none';
+  document.getElementById('admin-tab-stats').style.display = tab === 'stats' ? 'block' : 'none';
+
+  var tBtn = document.getElementById('tab-btn-teams');
+  var sBtn = document.getElementById('tab-btn-stats');
+  if (tab === 'teams') {
+    tBtn.style.background = '#ec4899'; tBtn.style.color = 'white'; tBtn.style.border = 'none';
+    sBtn.style.background = 'white'; sBtn.style.color = '#ec4899'; sBtn.style.border = '2px solid #ec4899';
+  } else {
+    sBtn.style.background = '#ec4899'; sBtn.style.color = 'white'; sBtn.style.border = 'none';
+    tBtn.style.background = 'white'; tBtn.style.color = '#ec4899'; tBtn.style.border = '2px solid #ec4899';
+    renderStats();
+  }
+}
+
+function renderAdminTeams() {
+  var list = document.getElementById('admin-team-list');
+  list.innerHTML = '';
+  for (var i = 0; i < teams.length; i++) {
+    (function(idx) {
+      var team = teams[idx];
+      var div = document.createElement('div');
+      div.style.cssText = 'background:white;border-radius:14px;padding:16px;margin-bottom:10px;box-shadow:0 2px 8px rgba(236,72,153,0.07);';
+      div.innerHTML =
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">' +
+          '<span style="background:#ec4899;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">' + (idx+1) + '</span>' +
+          '<span style="font-size:14px;font-weight:600;color:#6b7280;">' + (idx+1) + '번 조</span>' +
+        '</div>' +
+        '<input id="admin-name-' + idx + '" type="text" value="' + team.name + '" placeholder="조 이름"' +
+          ' style="width:100%;padding:10px 14px;border:1.5px solid #fce7f3;border-radius:8px;font-size:14px;margin-bottom:8px;"' +
+          ' onfocus="this.style.borderColor=\'#ec4899\'" onblur="this.style.borderColor=\'#fce7f3\'" />' +
+        '<input id="admin-topic-' + idx + '" type="text" value="' + team.topic + '" placeholder="시나리오 주제"' +
+          ' style="width:100%;padding:10px 14px;border:1.5px solid #fce7f3;border-radius:8px;font-size:14px;"' +
+          ' onfocus="this.style.borderColor=\'#ec4899\'" onblur="this.style.borderColor=\'#fce7f3\'" />';
+      list.appendChild(div);
+    })(i);
+  }
+}
+
+function saveTeams() {
+  var newTeams = [];
+  for (var i = 0; i < 16; i++) {
+    newTeams.push({
+      name: document.getElementById('admin-name-' + i).value.trim() || (i+1)+'번 조',
+      topic: document.getElementById('admin-topic-' + i).value.trim()
+    });
+  }
+  teams = newTeams;
+  saveTeamsStorage(teams);
+  showToast('팀 정보가 저장되었습니다.');
+}
+
+function resetAll() {
+  if (!confirm('모든 평가 데이터를 초기화하시겠습니까? 되돌릴 수 없습니다.')) return;
+  var subs = loadSubmitters();
+  subs.forEach(function(name) {
+    try { localStorage.removeItem(USER_PREFIX + name); } catch(e) {}
+  });
+  try { localStorage.removeItem(SUBMITTERS_KEY); } catch(e) {}
+  showToast('평가 데이터가 초기화되었습니다.');
+}
+
+// ======================== ADMIN - STATS ========================
+function renderStats() {
+  var container = document.getElementById('stats-content');
+  var submissions = getAllSubmissions();
+  var currentTeams = loadTeams();
+
+  if (submissions.length === 0) {
+    container.innerHTML =
+      '<div style="text-align:center;padding:60px 20px;color:#9ca3af;">' +
+        '<i class="fa-solid fa-chart-bar" style="font-size:52px;margin-bottom:16px;display:block;color:#fce7f3;"></i>' +
+        '<p style="font-size:16px;font-weight:700;color:#6b7280;">아직 제출된 평가가 없습니다.</p>' +
+        '<p style="font-size:13px;margin-top:4px;">평가자들이 최종 제출하면 통계가 표시됩니다.</p>' +
+      '</div>';
+    return;
+  }
+
+  var heartCounts = [];
+  var reasonsList = [];
+  for (var i = 0; i < 16; i++) { heartCounts.push(0); reasonsList.push([]); }
+
+  submissions.forEach(function(sub) {
+    for (var i = 0; i < 16; i++) {
+      var td = sub.evalData['team_' + i];
+      if (td && td.liked) {
+        heartCounts[i]++;
+        if (td.reason && td.reason.trim()) {
+          reasonsList[i].push({ name: sub.name, reason: td.reason.trim() });
+        }
+      }
+    }
+  });
+
+  var maxCount = Math.max.apply(null, heartCounts.concat([1]));
+  var totalHearts = heartCounts.reduce(function(a,b){ return a+b; }, 0);
+  var totalSubs = submissions.length;
+
+  var ranking = currentTeams.map(function(team, i) {
+    return { name: team.name, topic: team.topic, idx: i, count: heartCounts[i], reasons: reasonsList[i] };
+  }).sort(function(a, b) { return b.count - a.count; });
+
+  var submitterBadges = submissions.map(function(s) {
+    return '<span style="background:#fdf2f8;border:1px solid #f9a8d4;color:#ec4899;padding:5px 12px;border-radius:20px;font-size:13px;font-weight:600;">' + s.name + '</span>';
+  }).join('');
+
+  var rankingRows = ranking.map(function(team, rank) {
+    var pct = maxCount > 0 ? Math.round((team.count / maxCount) * 100) : 0;
+    var isTop3 = rank < 3 && team.count > 0;
+    var medal = rank === 0 ? '🥇' : rank === 1 ? '🥈' : rank === 2 ? '🥉' : '';
+    return '<div style="margin-bottom:14px;">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
+        '<div style="display:flex;align-items:center;gap:8px;">' +
+          '<span style="' + (isTop3 ? 'background:#ec4899;color:white;' : 'background:#f3f4f6;color:#6b7280;') + 'border-radius:7px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;flex-shrink:0;">' + (rank+1) + '</span>' +
+          '<div>' +
+            '<span style="font-size:14px;font-weight:700;color:#1f2937;">' + medal + ' ' + team.name + '</span>' +
+            (team.topic ? '<span style="font-size:12px;color:#9ca3af;margin-left:6px;">' + team.topic + '</span>' : '') +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:4px;flex-shrink:0;">' +
+          '<i class="fa-solid fa-heart" style="color:#ec4899;font-size:12px;"></i>' +
+          '<span style="font-size:15px;font-weight:800;color:#ec4899;">' + team.count + '</span>' +
+        '</div>' +
+      '</div>' +
+      '<div style="background:#f3f4f6;border-radius:6px;height:10px;overflow:hidden;">' +
+        '<div style="background:linear-gradient(90deg,#ec4899,#f472b6);height:100%;width:' + pct + '%;border-radius:6px;transition:width 0.6s;"></div>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+
+  var reasonCards = ranking.filter(function(t) { return t.reasons.length > 0; }).map(function(team) {
+    var reasonItems = team.reasons.map(function(r) {
+      return '<div style="background:#fdf2f8;border-radius:10px;padding:12px;margin-bottom:8px;">' +
+        '<div style="font-size:12px;font-weight:700;color:#ec4899;margin-bottom:5px;"><i class="fa-solid fa-user" style="margin-right:4px;"></i>' + r.name + '</div>' +
+        '<div style="font-size:14px;color:#374151;line-height:1.6;">' + r.reason + '</div>' +
+      '</div>';
+    }).join('');
+    return '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:12px;border:2px solid #fce7f3;">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;">' +
+        '<span style="background:#ec4899;color:white;border-radius:50%;width:28px;height:28px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;">' + (team.idx+1) + '</span>' +
+        '<span style="font-size:15px;font-weight:700;color:#1f2937;">' + team.name + '</span>' +
+        '<span style="background:#fdf2f8;border:1px solid #f9a8d4;color:#ec4899;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:700;">' +
+          '<i class="fa-solid fa-heart" style="margin-right:3px;"></i>' + team.count + '개' +
+        '</span>' +
+      '</div>' +
+      reasonItems +
+    '</div>';
+  }).join('');
+
+  var noReasons = ranking.filter(function(t) { return t.reasons.length > 0; }).length === 0
+    ? '<div style="text-align:center;padding:20px;color:#9ca3af;font-size:14px;">추천 사유가 아직 없습니다.</div>' : '';
+
+  container.innerHTML =
+    // Summary Cards
+    '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:14px;">' +
+      '<div style="background:white;border-radius:14px;padding:14px;text-align:center;border:2px solid #fce7f3;">' +
+        '<div style="font-size:28px;font-weight:800;color:#ec4899;">' + totalSubs + '</div>' +
+        '<div style="font-size:12px;color:#6b7280;margin-top:2px;">제출 완료</div>' +
+      '</div>' +
+      '<div style="background:white;border-radius:14px;padding:14px;text-align:center;border:2px solid #fce7f3;">' +
+        '<div style="font-size:28px;font-weight:800;color:#ec4899;">' + totalHearts + '</div>' +
+        '<div style="font-size:12px;color:#6b7280;margin-top:2px;">총 추천 수</div>' +
+      '</div>' +
+      '<div style="background:white;border-radius:14px;padding:14px;text-align:center;border:2px solid #fce7f3;">' +
+        '<div style="font-size:28px;font-weight:800;color:#ec4899;">' + ranking.filter(function(t){return t.count>0;}).length + '</div>' +
+        '<div style="font-size:12px;color:#6b7280;margin-top:2px;">추천받은 팀</div>' +
+      '</div>' +
+    '</div>' +
+
+    // Submitters
+    '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:14px;border:2px solid #fce7f3;">' +
+      '<div style="font-size:14px;font-weight:700;color:#1f2937;margin-bottom:10px;">' +
+        '<i class="fa-solid fa-users" style="color:#ec4899;margin-right:6px;"></i>제출한 평가자 (' + totalSubs + '명)' +
+      '</div>' +
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;">' + submitterBadges + '</div>' +
+    '</div>' +
+
+    // Ranking
+    '<div style="background:white;border-radius:14px;padding:16px;margin-bottom:14px;border:2px solid #fce7f3;">' +
+      '<div style="font-size:14px;font-weight:700;color:#1f2937;margin-bottom:14px;">' +
+        '<i class="fa-solid fa-ranking-star" style="color:#ec4899;margin-right:6px;"></i>추천 순위' +
+      '</div>' +
+      rankingRows +
+    '</div>' +
+
+    // Reasons
+    '<div style="font-size:14px;font-weight:700;color:#1f2937;margin-bottom:10px;padding:0 2px;">' +
+      '<i class="fa-solid fa-comment-heart" style="color:#ec4899;margin-right:6px;"></i>팀별 추천 사유' +
+    '</div>' +
+    reasonCards + noReasons;
+}
+
+// ======================== TOAST ========================
+function showToast(msg) {
+  var toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 2500);
+}
+
+// ======================== INIT ========================
+function init() {
+  document.getElementById('view-home').style.display = 'none';
+  document.getElementById('view-eval').style.display = 'none';
+  document.getElementById('view-admin').style.display = 'none';
+
+  document.getElementById('home-name-input').addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') startEval();
+  });
+
+  showView('view-home');
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
